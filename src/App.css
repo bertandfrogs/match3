@@ -1,0 +1,180 @@
+* {
+  box-sizing: border-box;
+}
+
+.app {
+  min-height: 100vh;
+  background: #dedede;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 32px 24px 48px;
+  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  color: white;
+}
+
+.app h1 {
+  font-size: 28px;
+  font-weight: 700;
+  margin: 0 0 28px;
+	color: #252939;
+  letter-spacing: -0.5px;
+}
+
+.layout {
+  display: flex;
+  gap: 28px;
+  align-items: flex-start;
+}
+
+.game-canvas {
+  display: block;
+}
+
+.panel {
+  width: 228px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  flex-shrink: 0;
+}
+
+.card {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  padding: 14px 16px;
+}
+
+.card-label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 1.4px;
+  text-transform: uppercase;
+  color: #3a4580;
+  margin-bottom: 8px;
+}
+
+.big-num {
+  font-size: 44px;
+  font-weight: 700;
+  line-height: 1;
+  color: #252939;
+  font-variant-numeric: tabular-nums;
+}
+
+.stat-list {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.stat-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  font-size: 13px;
+}
+
+.stat-row span:first-child {
+  color: #5f636b;
+}
+
+.stat-row span:last-child {
+  color: #616b94;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.btn {
+  width: 100%;
+  padding: 13px;
+  border: none;
+  border-radius: 10px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: filter 0.15s, transform 0.1s;
+  font-family: inherit;
+  letter-spacing: 0.2px;
+}
+
+.btn:hover {
+  filter: brightness(1.1);
+  transform: translateY(-1px);
+}
+
+.btn:active {
+  transform: translateY(0);
+  filter: brightness(0.95);
+}
+
+.btn-play {
+  background: linear-gradient(145deg, #001886, #2f005f);
+  color: white;
+}
+
+.btn-stop {
+  background: linear-gradient(135deg, #b93345, #c13f6c);
+  color: white;
+}
+
+.btn-reset {
+  background: rgba(255, 255, 255, 0.64);
+  color: #5f636b;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.speed-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 13px;
+  color: #5f636b;
+  margin-bottom: 10px;
+}
+
+.speed-value {
+  color: #465396;
+  font-weight: 600;
+}
+
+input[type='range'] {
+  width: 100%;
+  accent-color: #667eea;
+  cursor: pointer;
+}
+
+.log-text {
+  font-size: 12px;
+  color: #888;
+  font-family: 'Courier New', monospace;
+  min-height: 16px;
+  line-height: 1.5;
+}
+
+.info-card p {
+  font-size: 12px;
+  color: #9ca3af;
+  line-height: 1.65;
+  margin: 0;
+}
+
+.info-card em {
+  color: #a5b4fc;
+  font-style: normal;
+  font-weight: 600;
+}
+
+.badge {
+  display: inline-block;
+  margin-top: 10px;
+  padding: 3px 10px;
+  background: rgba(102, 126, 234, 0.15);
+  border: 1px solid rgba(102, 126, 234, 0.35);
+  border-radius: 100px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #a5b4fc;
+  letter-spacing: 0.5px;
+}
