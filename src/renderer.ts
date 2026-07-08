@@ -3,6 +3,16 @@ import { TILE, PALETTE, Color } from "./constants";
 import { drawStar, drawTriangle, drawSquare, drawEllipse, drawDiamond, drawClover } from "./shapes";
 import type { TileAnim } from "./anim";
 
+import gem1 from "./assets/gems/gem_01.png";
+import gem2 from "./assets/gems/gem_02.png";
+import gem3 from "./assets/gems/gem_03.png";
+import gem4 from "./assets/gems/gem_04.png";
+import gem5 from "./assets/gems/gem_05.png";
+import gem6 from "./assets/gems/gem_06.png";
+
+// Flip this to switch back to the hand-drawn canvas shapes.
+const USE_GEM_SPRITES = true;
+
 function easeOutCubic(t: number) {
   return 1 - (1 - t) ** 3;
 }
@@ -11,7 +21,44 @@ function easeOutQuart(t: number) {
   return 1 - (1 - t) ** 4;
 }
 
-export function drawTileAt(
+const GEM_SRC: Record<Color, string> = {
+  [Color.Pink]: gem1,
+  [Color.Purple]: gem2,
+  [Color.Green]: gem3,
+  [Color.Yellow]: gem4,
+  [Color.Red]: gem5,
+  [Color.Blue]: gem6,
+};
+
+const gemImages: Partial<Record<Color, HTMLImageElement>> = {};
+for (const [color, src] of Object.entries(GEM_SRC)) {
+  const img = new Image();
+  img.src = src;
+  gemImages[Number(color) as Color] = img;
+}
+
+function drawTileAtSprite(
+  ctx: CanvasRenderingContext2D,
+  color: Color,
+  x: number,
+  y: number,
+  isMatched = false,
+) {
+  const img = gemImages[color];
+  const p = 5, sz = TILE - p * 2;
+  ctx.save();
+  ctx.translate(x, y);
+  if (isMatched) {
+    ctx.shadowColor = PALETTE[color].base;
+    ctx.shadowBlur = 15;
+  }
+  if (img && img.complete) {
+    ctx.drawImage(img, p, p, sz, sz);
+  }
+  ctx.restore();
+}
+
+function drawTileAtShapes(
   ctx: CanvasRenderingContext2D,
   color: Color,
   x: number,
@@ -34,12 +81,12 @@ export function drawTileAt(
 	}
   ctx.fillStyle = isMatched ? pal.lo : pal.base;
   switch (color) {
-    case Color.Star:     drawStar(ctx, p, sz);     break;
-    case Color.Triangle: drawTriangle(ctx, p, sz); break;
-    case Color.Square:   drawSquare(ctx, p, sz);   break;
-    case Color.Ellipse:  drawEllipse(ctx, p, sz);  break;
-    case Color.Diamond:  drawDiamond(ctx, p, sz);  break;
-    case Color.Clover:   drawClover(ctx, p, sz);   break;
+    case Color.Yellow:     drawStar(ctx, p, sz);     break;
+    case Color.Red: drawTriangle(ctx, p, sz); break;
+    case Color.Pink:   drawSquare(ctx, p, sz);   break;
+    case Color.Purple:  drawEllipse(ctx, p, sz);  break;
+    case Color.Blue:  drawDiamond(ctx, p, sz);  break;
+    case Color.Green:   drawClover(ctx, p, sz);   break;
     default: {
       const _exhaustive: never = color;
       throw Error(`unexpected color: ${_exhaustive}`);
@@ -47,6 +94,17 @@ export function drawTileAt(
   }
   ctx.fill();
   ctx.restore();
+}
+
+export function drawTileAt(
+  ctx: CanvasRenderingContext2D,
+  color: Color,
+  x: number,
+  y: number,
+  isMatched = false,
+) {
+  if (USE_GEM_SPRITES) drawTileAtSprite(ctx, color, x, y, isMatched);
+  else drawTileAtShapes(ctx, color, x, y, isMatched);
 }
 
 export function drawBoard(
