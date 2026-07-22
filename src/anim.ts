@@ -7,17 +7,47 @@ export interface TileAnim {
   fromY: number;
   toX: number;
   toY: number;
-  startTime: number;
-  duration: number;
+  startFrame: number;
+  durationFrames: number;
   hideCells: number[];
   easing: "cubic" | "quart";
+}
+
+export interface BurstAnim {
+  color: Color;
+  x: number;
+  y: number;
+  startFrame: number;
+  durationFrames: number;
+}
+
+export function makeBurstAnims(
+  board: Board,
+  matched: ReadonlySet<number>,
+  startFrame: number,
+  durationFrames: number,
+): BurstAnim[] {
+  const anims: BurstAnim[] = [];
+  for (const key of matched) {
+    const r = (key / COLS) | 0, c = key % COLS;
+    const color = board[r][c];
+    if (color < 0) continue;
+    anims.push({
+      color: color as Color,
+      x: c * TILE + TILE / 2,
+      y: r * TILE + TILE / 2,
+      startFrame,
+      durationFrames,
+    });
+  }
+  return anims;
 }
 
 export function makeFallAnims(
   before: Board,
   after: Board,
-  startTime: number,
-  duration: number,
+  startFrame: number,
+  durationFrames: number,
 ): TileAnim[] {
   const anims: TileAnim[] = [];
   for (let c = 0; c < COLS; c++) {
@@ -35,8 +65,8 @@ export function makeFallAnims(
           fromY: oldR * TILE,
           toX: c * TILE,
           toY: newR * TILE,
-          startTime,
-          duration,
+          startFrame,
+          durationFrames,
           hideCells: [newR * COLS + c],
           easing: "quart",
         });
@@ -48,8 +78,8 @@ export function makeFallAnims(
 export function makeFillAnims(
   board: Board,
   emptyBefore: Set<number>,
-  startTime: number,
-  duration: number,
+  startFrame: number,
+  durationFrames: number,
 ): TileAnim[] {
   const anims: TileAnim[] = [];
   const byCol = new Map<number, number[]>();
@@ -68,8 +98,8 @@ export function makeFillAnims(
         fromY: -above * TILE,
         toX: c * TILE,
         toY: r * TILE,
-        startTime,
-        duration,
+        startFrame,
+        durationFrames,
         hideCells: [r * COLS + c],
         easing: "quart",
       });

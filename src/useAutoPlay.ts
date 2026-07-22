@@ -16,8 +16,13 @@ import {
   scoreMove,
   shuffleBoard,
 } from "./game";
-import { type TileAnim, makeFallAnims, makeFillAnims } from "./anim";
+import { type TileAnim, type BurstAnim, makeFallAnims, makeFillAnims, makeBurstAnims } from "./anim";
 import { drawBoard } from "./renderer";
+
+const FRAME_MS = 1000 / 60;
+function msToFrames(msVal: number) {
+  return Math.max(1, Math.round(msVal / FRAME_MS));
+}
 
 interface Stats {
   score: number;
@@ -43,6 +48,8 @@ export function useAutoPlay() {
   const matchedRef = useRef<ReadonlySet<number>>(new Set());
   const highlightRef = useRef<Move | null>(null);
   const animsRef = useRef<TileAnim[]>([]);
+  const burstsRef = useRef<BurstAnim[]>([]);
+  const frameRef = useRef(0);
   const autoRef = useRef(false);
   const busyRef = useRef(false);
   const speedRef = useRef(2);
@@ -57,9 +64,18 @@ export function useAutoPlay() {
     const ctx = canvas.getContext("2d")!;
     let rafId: number;
     const loop = () => {
-      const now = performance.now();
-      animsRef.current = animsRef.current.filter((a) => now < a.startTime + a.duration);
-      drawBoard(ctx, boardRef.current, matchedRef.current, highlightRef.current, animsRef.current);
+      const frame = ++frameRef.current;
+      animsRef.current = animsRef.current.filter((a) => frame < a.startFrame + a.durationFrames);
+      burstsRef.current = burstsRef.current.filter((b) => frame < b.startFrame + b.durationFrames);
+      drawBoard(
+        ctx,
+        boardRef.current,
+        matchedRef.current,
+        highlightRef.current,
+        animsRef.current,
+        burstsRef.current,
+        frame,
+      );
       rafId = requestAnimationFrame(loop);
     };
     rafId = requestAnimationFrame(loop);
@@ -115,10 +131,10 @@ export function useAutoPlay() {
     const dur = animDur();
     // Animate for dur ms visually, but keep cells hidden for 2 extra frames so
     // swapTiles can never race with the RAF loop unhiding them prematurely.
-    const animHoldDur = dur + 32;
+    const animHoldFrames = msToFrames(dur) + 2;
     const { r1, c1, r2, c2 } = best;
     const swapCells = [r1 * COLS + c1, r2 * COLS + c2];
-    const swapStart = performance.now();
+    const swapStart = frameRef.current;
     animsRef.current.push(
       {
         color: board[r1][c1] as Color,
@@ -126,8 +142,8 @@ export function useAutoPlay() {
         fromY: r1 * TILE,
         toX: c2 * TILE,
         toY: r2 * TILE,
-        startTime: swapStart,
-        duration: animHoldDur,
+        startFrame: swapStart,
+        durationFrames: animHoldFrames,
         hideCells: swapCells,
         easing: "cubic",
       },
@@ -137,8 +153,8 @@ export function useAutoPlay() {
         fromY: r2 * TILE,
         toX: c1 * TILE,
         toY: r1 * TILE,
-        startTime: swapStart,
-        duration: animHoldDur,
+        startFrame: swapStart,
+        durationFrames: animHoldFrames,
         hideCells: swapCells,
         easing: "cubic",
       },
@@ -158,6 +174,7 @@ export function useAutoPlay() {
       addedScore += m.length * 10 * (iter + 1);
 
       matchedRef.current = new Set(m.map(({ r, c }) => r * COLS + c));
+      burstsRef.current = makeBurstAnims(board, matchedRef.current, frameRef.current, msToFrames(ms(0.22)));
       setStats((s) => ({
         ...s,
         log: `Matched ${m.length} tiles!${iter > 0 ? ` (×${iter + 1} cascade)` : ""}`,
@@ -171,7 +188,7 @@ export function useAutoPlay() {
       const preGrav = cloneBoard(board);
       applyGravity(board);
       const fallDur = animDur() * 0.75;
-      animsRef.current.push(...makeFallAnims(preGrav, board, performance.now(), fallDur));
+      animsRef.current.push(...makeFallAnims(preGrav, board, frameRef.current, msToFrames(fallDur)));
       await new Promise<void>((res) => setTimeout(res, fallDur));
       if (runId !== runIdRef.current) { busyRef.current = false; return; }
 
@@ -181,7 +198,7 @@ export function useAutoPlay() {
           if (board[r][c] < 0) emptyBefore.add(r * COLS + c);
       fillRandom(board);
       const fillDur = animDur() * 0.6;
-      animsRef.current.push(...makeFillAnims(board, emptyBefore, performance.now(), fillDur));
+      animsRef.current.push(...makeFillAnims(board, emptyBefore, frameRef.current, msToFrames(fillDur)));
       await new Promise<void>((res) => setTimeout(res, fillDur));
       if (runId !== runIdRef.current) { busyRef.current = false; return; }
 
@@ -225,6 +242,7 @@ export function useAutoPlay() {
     matchedRef.current = new Set();
     highlightRef.current = null;
     animsRef.current = [];
+    burstsRef.current = [];
     setStats({ ...INIT_STATS, log: "Board reset — click Start to play" });
   }
 

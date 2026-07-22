@@ -1,7 +1,7 @@
 import { COLS, ROWS, type Board, type Move } from "./game";
 import { TILE, PALETTE, Color } from "./constants";
 import { drawStar, drawTriangle, drawSquare, drawEllipse, drawDiamond, drawClover } from "./shapes";
-import type { TileAnim } from "./anim";
+import type { TileAnim, BurstAnim } from "./anim";
 
 import gem1 from "./assets/gems/gem_01.png";
 import gem2 from "./assets/gems/gem_02.png";
@@ -9,6 +9,12 @@ import gem3 from "./assets/gems/gem_03.png";
 import gem4 from "./assets/gems/gem_04.png";
 import gem5 from "./assets/gems/gem_05.png";
 import gem6 from "./assets/gems/gem_06.png";
+import gem1Cracked from "./assets/gems/gem_01_cracked.png";
+import gem2Cracked from "./assets/gems/gem_02_cracked.png";
+import gem3Cracked from "./assets/gems/gem_03_cracked.png";
+import gem4Cracked from "./assets/gems/gem_04_cracked.png";
+import gem5Cracked from "./assets/gems/gem_05_cracked.png";
+import gem6Cracked from "./assets/gems/gem_06_cracked.png";
 
 // Flip this to switch back to the hand-drawn canvas shapes.
 const USE_GEM_SPRITES = true;
@@ -30,12 +36,27 @@ const GEM_SRC: Record<Color, string> = {
   [Color.Blue]: gem6,
 };
 
-const gemImages: Partial<Record<Color, HTMLImageElement>> = {};
-for (const [color, src] of Object.entries(GEM_SRC)) {
-  const img = new Image();
-  img.src = src;
-  gemImages[Number(color) as Color] = img;
+const GEM_SRC_CRACKED: Record<Color, string> = {
+  [Color.Pink]: gem1Cracked,
+  [Color.Purple]: gem2Cracked,
+  [Color.Green]: gem3Cracked,
+  [Color.Yellow]: gem4Cracked,
+  [Color.Red]: gem5Cracked,
+  [Color.Blue]: gem6Cracked,
+};
+
+function loadGemImages(src: Record<Color, string>): Partial<Record<Color, HTMLImageElement>> {
+  const images: Partial<Record<Color, HTMLImageElement>> = {};
+  for (const [color, url] of Object.entries(src)) {
+    const img = new Image();
+    img.src = url;
+    images[Number(color) as Color] = img;
+  }
+  return images;
 }
+
+const gemImages = loadGemImages(GEM_SRC);
+const gemImagesCracked = loadGemImages(GEM_SRC_CRACKED);
 
 function drawTileAtSprite(
   ctx: CanvasRenderingContext2D,
@@ -44,7 +65,7 @@ function drawTileAtSprite(
   y: number,
   isMatched = false,
 ) {
-  const img = gemImages[color];
+  const img = isMatched ? gemImagesCracked[color] : gemImages[color];
   const p = 5, sz = TILE - p * 2;
   ctx.save();
   ctx.translate(x, y);
@@ -107,15 +128,47 @@ export function drawTileAt(
   else drawTileAtShapes(ctx, color, x, y, isMatched);
 }
 
+function drawBurst(ctx: CanvasRenderingContext2D, b: BurstAnim, frame: number) {
+  const t = (frame - b.startFrame) / b.durationFrames;
+  if (t < 0 || t >= 1) return;
+  const pal = PALETTE[b.color];
+  const eased = easeOutCubic(t);
+  const maxR = TILE * 0.6;
+  const alpha = 1 - t;
+
+  ctx.save();
+  ctx.translate(b.x, b.y);
+  ctx.globalAlpha = alpha;
+
+  ctx.strokeStyle = pal.base;
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.arc(0, 0, maxR * eased, 0, Math.PI * 2);
+  ctx.stroke();
+
+  const particleCount = 8;
+  for (let i = 0; i < particleCount; i++) {
+    const angle = (i / particleCount) * Math.PI * 2;
+    const dist = maxR * eased;
+    const size = 4 * (1 - eased);
+    ctx.fillStyle = pal.hi;
+    ctx.beginPath();
+    ctx.arc(Math.cos(angle) * dist, Math.sin(angle) * dist, size, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.restore();
+}
+
 export function drawBoard(
   ctx: CanvasRenderingContext2D,
   board: Board,
   matched: ReadonlySet<number>,
   highlight: Move | null,
   anims: TileAnim[],
+  bursts: BurstAnim[] = [],
+  frame: number,
 ) {
   const W = COLS * TILE, H = ROWS * TILE;
-  const now = performance.now();
 
   ctx.fillStyle = "#ffffff";
   ctx.fillRect(0, 0, W, H);
@@ -142,9 +195,11 @@ export function drawBoard(
     ctx.setLineDash([]);
   }
 
-  const active = anims.filter((a) => now < a.startTime + a.duration);
+  const active = anims.filter((a) => frame < a.startFrame + a.durationFrames);
   const hidden = new Set<number>();
   for (const a of active) for (const k of a.hideCells) hidden.add(k);
+
+  for (const b of bursts) drawBurst(ctx, b, frame);
 
   for (let r = 0; r < ROWS; r++) {
     for (let c = 0; c < COLS; c++) {
@@ -161,7 +216,7 @@ export function drawBoard(
   ctx.rect(0, 0, W, H);
   ctx.clip();
   for (const a of active) {
-    const t = Math.min((now - a.startTime) / a.duration, 1);
+    const t = Math.min((frame - a.startFrame) / a.durationFrames, 1);
     const e = a.easing === "cubic" ? easeOutCubic(t) : easeOutQuart(t);
     drawTileAt(ctx, a.color, a.fromX + (a.toX - a.fromX) * e, a.fromY + (a.toY - a.fromY) * e);
   }
